@@ -4,14 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from uuid import uuid4
 import google.generativeai as genai
 import base64
-import os
-import dotenv
-dotenv.load_dotenv()
-print(os.getenv("GEMINI_API_KEY"))
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # === 1. Configure Gemini ===
-
+genai.configure(api_key="AIzaSyDe6BDkMn1zCQFsUHbNDx8LSdyMFo0TvFE")
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 # === 2. Initialize FastAPI app ===
