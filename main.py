@@ -4,10 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from uuid import uuid4
 import google.generativeai as genai
 import base64
+import os
+import dotenv
+dotenv.load_dotenv()
+print(os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # === 1. Configure Gemini ===
-genai.configure(api_key="AIzaSyC_RYuYakQgffMn6rCqfOHYel1mCQCeZII")
-model = genai.GenerativeModel('gemini-1.5-flash')
+
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 # === 2. Initialize FastAPI app ===
 app = FastAPI()
@@ -152,11 +157,16 @@ Document Text:
 
 @app.get("/summary")
 async def summary(jobId: str):
+    
     job = job_store.get(jobId)
+    print(f"[SUMMARY] Fetching summary for job: {jobId}")
     if not job or "message" not in job:
         return {"status": "processing"}
     full_text = job["message"]
     summary = generate_insurance_summary(full_text)
+    print(f"[SUMMARY] Generated summary for job: {jobId} | Summary: {summary}")
     # store back into job_store
     job_store[jobId]["summary"] = summary
     return {"status": "done", "summary": summary}
+
+

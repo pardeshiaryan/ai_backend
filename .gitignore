@@ -7,3 +7,12 @@ __pycache__/
 env/
 venv/
 ENV/
+render.yaml
+.env/
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+.yaml
+#ignore all yaml
+*.yaml
+# Ignore Python bytecode files
+*.py[cod]
