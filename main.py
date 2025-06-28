@@ -45,6 +45,7 @@ async def upload(file: UploadFile, background_tasks: BackgroundTasks):
 @app.get("/result")
 async def result(jobId: str):
     job = job_store.get(jobId)
+
     if not job:
         return {"status": "processing"}
     return {"status": "done", **job}
@@ -78,3 +79,84 @@ async def process_document(job_id: str, file_bytes: bytes, mime_type: str):
     except Exception as e:
         print(f"[ERROR] Gemini processing failed: {e}")
         job_store[job_id] = {"error": "Failed to process file"}
+
+
+
+
+
+
+
+
+# //below is new code #
+
+import re
+from typing import Dict
+
+# … your existing imports and setup above …
+
+def parse_policy_text(raw_text: str) -> Dict[str,str]:
+    data = {}
+    entries = raw_text.strip().split("||")
+    for entry in entries:
+        if ":" in entry:
+            key, value = entry.split(":", 1)
+            data[key.strip()] = value.strip()
+    return data
+
+def generate_insurance_summary(full_text: str) -> str:
+    prompt = f"""
+You are an insurance assistant.
+
+Given the text of an insurance document below, write a friendly and short summary (3–5 lines max) for the user. Mention details like:
+
+- Type of policy
+- Policy duration
+- Insurance company (if mentioned)
+- Vehicle make/model (if found)
+- Premium (if available)
+
+Do **not** hardcode field names. Just summarize what’s clearly present.
+
+Insurance Document:
+\"\"\"
+{full_text}
+\"\"\"
+Summary:
+"""
+    resp = model.generate_content(prompt)
+    return resp.text.strip()
+
+@app.get("/extract")
+async def extract(jobId: str):
+    job = job_store.get(jobId)
+    if not job or "message" not in job:
+        return {"status": "processing"}
+    raw = job["message"]
+    # build and call the key‑info prompt
+    prompt = f"""
+From the following insurance document text, extract and return the key information as a plain text list in this exact format:
+
+<key>: <value>||
+
+Make sure every entry ends with '||' and don't explain anything — just return the list.
+
+Document Text:
+{raw}
+"""
+    resp = model.generate_content(prompt)
+    raw_keys = resp.text
+    fields = parse_policy_text(raw_keys)
+    # store back into job_store
+    job_store[jobId]["fields"] = fields
+    return {"status": "done", "fields": fields}
+
+@app.get("/summary")
+async def summary(jobId: str):
+    job = job_store.get(jobId)
+    if not job or "message" not in job:
+        return {"status": "processing"}
+    full_text = job["message"]
+    summary = generate_insurance_summary(full_text)
+    # store back into job_store
+    job_store[jobId]["summary"] = summary
+    return {"status": "done", "summary": summary}
